@@ -2,6 +2,8 @@ import e, { Request, Response } from "express";
 import { hashPassword, verifyPassword } from "../utils/pwdUtils";
 import User, { UserI } from "../DBSchemas/User";
 import { generateToken } from "../utils/JWTUtils";
+import { loginSchema } from "../JoiValidators/authValidators";
+import { validateSchema } from "../utils/joiUtil";
 
 export async function register(req: Request, res: Response) {
     try {
@@ -31,7 +33,7 @@ export async function register(req: Request, res: Response) {
 }
 
 export async function login(req: Request, res: Response) {
-    const { email, password } = req.body;
+    const { email, password } = validateSchema(req, loginSchema);
     try {
         if (!email || !password) {
             res.status(400).send({ message: 'champs email et password obligatoires' })

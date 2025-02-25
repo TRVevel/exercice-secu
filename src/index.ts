@@ -7,6 +7,9 @@ import swaggerDocs from './config/swagger';
 import swaggerUi from 'swagger-ui-express'
 import cors from 'cors';
 import UserRoutes from "./routes/UserRoutes";
+import mongoSanitize from "express-mongo-sanitize";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 //Création serveur express
 const app = express()
@@ -21,8 +24,21 @@ const PORT = process.env.PORT
 app.use(express.json());
 
 // Active CORS pour toutes les origines
-app.use(cors());
-
+const corsOptions = {
+    origin: process.env.API_URL || "http://localhost:4200", // Placer le domaine du client pour
+    methods: 'GET,POST,DELETE,PUT', // Restreindre les méthodes autorisées
+    allowedHeaders: 'Content-Type,Authorization', // Définir les en-têtes acceptés
+    credentials: true // Autoriser les cookies et les headers sécurisés
+    };
+app.use(cors(corsOptions));
+app.use(mongoSanitize());
+export const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // ⏳ temps en millisecondes
+    max: 100, // 🔒 Limite à 100 requêtes par IP
+    message: "⛔ Trop de requêtes. Réessayez plus tard."
+    });
+    // Appliquer le rate limiter sur toutes les routes
+app.use(apiLimiter);
 //connecter MongoDB
 const connectDB = async () => {
     try {
@@ -35,20 +51,38 @@ const connectDB = async () => {
 };
 
 connectDB();
-
+app.use(
+    helmet({
+    contentSecurityPolicy: {
+    directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "'nonce-random123'"],
+    styleSrc: ["'self'"], // Supprimer 'strict-dynamic'
+    imgSrc: ["'self'"], // Supprimer 'data:'
+    objectSrc: ["'none'"],
+    baseUri: ["'self'"],
+    formAction: ["'self'"],
+    frameAncestors: ["'none'"],
+    scriptSrcAttr: ["'none'"],
+    upgradeInsecureRequests: [],
+    },
+    },
+    })
+    );
+    
 //TODO ajouter routes ici
 app.use('/todos', TodoRoutes)
 app.use('/auth', AuthRoutes)
 app.use('/users', UserRoutes)
 
 // Route pour accéder au JSON brut
-app.get('/api-docs.json', (req, res) => {
+app.get('/swagger.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerDocs);
 });
 
 // Swagger route
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 console.log(process.env.NODE_ENV);
 
