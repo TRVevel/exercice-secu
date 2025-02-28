@@ -7,9 +7,9 @@ import swaggerDocs from './config/swagger';
 import swaggerUi from 'swagger-ui-express'
 import cors from 'cors';
 import UserRoutes from "./routes/UserRoutes";
-import mongoSanitize from "express-mongo-sanitize";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import ExpressMongoSanitize from "express-mongo-sanitize";
 
 //Création serveur express
 const app = express()
@@ -31,7 +31,7 @@ const corsOptions = {
     credentials: true // Autoriser les cookies et les headers sécurisés
     };
 app.use(cors(corsOptions));
-app.use(mongoSanitize());
+app.use(ExpressMongoSanitize());
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // ⏳ temps en millisecondes
     max: 100, // 🔒 Limite à 100 requêtes par IP
